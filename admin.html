@@ -105,7 +105,7 @@ async function loadStatus() {
   const updated = new Date(data.updated_at).getTime()
   const expired = Date.now() - updated > 20 * 60 * 1000
 
-  const status = expired ? 'neutral' : data.status
+const status = expired ? 'green' : data.status
   showLight(status)
 }
 
