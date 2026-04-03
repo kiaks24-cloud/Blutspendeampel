@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blutspende-Ampel</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      text-align: center;
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .ampel {
+      background: #222;
+      width: 140px;
+      margin: 0 auto 25px auto;
+      padding: 20px 0;
+      border-radius: 25px;
+    }
+
+    .light {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 15px auto;
+      opacity: 0.2;
+    }
+
+    .red { background: red; }
+    .yellow { background: gold; }
+    .green { background: limegreen; }
+
+    .active {
+      opacity: 1;
+      box-shadow: 0 0 25px currentColor;
+    }
+
+    button {
+      margin: 6px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .btn-green { background: limegreen; }
+    .btn-yellow { background: gold; }
+    .btn-red { background: red; color: white; }
+
+    #statusText {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    #info {
+      color: #444;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Blutspendemobil</h1>
+
+    <div class="ampel">
+      <div id="red" class="light red"></div>
+      <div id="yellow" class="light yellow"></div>
+      <div id="green" class="light green"></div>
+    </div>
+
+    <div id="statusText">Lade...</div>
+    <div id="info">Status wird geladen</div>
+
+    <hr style="margin: 25px 0;">
+
+    <button class="btn-green" onclick="setStatus('green')">Grün</button>
+    <button class="btn-yellow" onclick="setStatus('yellow')">Gelb</button>
+    <button class="btn-red" onclick="setStatus('red')">Rot</button>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+    const supabase = createClient(
+      'https://ljjpefhiqpyjvgohoorj.supabase.co',
+      'sb_publishable_c5aJAVl3RS4B2yFqyctT0A_W7ni7FgC'
+    )
+
+    function showLight(status) {
+      document.getElementById('red').classList.remove('active')
+      document.getElementById('yellow').classList.remove('active')
+      document.getElementById('green').classList.remove('active')
+
+      const statusText = document.getElementById('statusText')
+      const info = document.getElementById('info')
+
+      if (status === 'green') {
+        document.getElementById('green').classList.add('active')
+        statusText.innerText = 'Grün'
+        info.innerText = 'Spende aktuell sinnvoll'
+      } else if (status === 'yellow') {
+        document.getElementById('yellow').classList.add('active')
+        statusText.innerText = 'Gelb'
+        info.innerText = 'Es kann zu Wartezeit kommen'
+      } else if (status === 'red') {
+        document.getElementById('red').classList.add('active')
+        statusText.innerText = 'Rot'
+        info.innerText = 'Aktuell eher nicht sinnvoll'
+      } else {
+        statusText.innerText = 'Neutral'
+        info.innerText = 'Keine aktuelle Meldung'
+      }
+    }
+
+    async function loadStatus() {
+      const { data, error } = await supabase
+        .from('traffic_status')
+        .select('*')
+        .eq('id', 1)
+        .single()
+
+      if (error) {
+        document.getElementById('statusText').innerText = 'Fehler'
+        document.getElementById('info').innerText = error.message
+        return
+      }
+
+      const updated = new Date(data.updated_at).getTime()
+      const expired = Date.now() - updated > 20 * 60 * 1000
+
+      const status = expired ? 'neutral' : data.status
+      showLight(status)
+    }
+
+    async function setStatus(status) {
+      const { error } = await supabase
+        .from('traffic_status')
+        .update({
+          status: status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', 1)
+
+      if (error) {
+        alert('Fehler: ' + error.message)
+        return
+      }
+
+      loadStatus()
+    }
+
+    window.setStatus = setStatus
+
+    loadStatus()
+    setInterval(loadStatus, 5000)
+  </script>
+
+</body>
+</html>
