@@ -129,3 +129,12 @@ setInterval(loadStatus, 5000)
 
 </body>
 </html>
+
+<script>
+const password = prompt("Passwort eingeben:");
+
+if (password !== "Segeln26!") {
+  document.body.innerHTML = "<h1>Zugriff verweigert</h1>";
+  throw new Error("Kein Zugriff");
+}
+</script>
