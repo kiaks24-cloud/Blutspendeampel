@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #eef2f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: center;
+    }
+
+    .ampel {
+      background: #222;
+      width: 140px;
+      margin: 0 auto 20px auto;
+      padding: 20px 0;
+      border-radius: 25px;
+    }
+
+    .light {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 15px auto;
+      opacity: 0.2;
+    }
+
+    .red { background: red; }
+    .yellow { background: gold; }
+    .green { background: limegreen; }
+
+    .active {
+      opacity: 1;
+      box-shadow: 0 0 25px currentColor;
+    }
+
+    button {
+      margin: 5px;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .btn-green { background: limegreen; }
+    .btn-yellow { background: gold; }
+    .btn-red { background: red; color: white; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Admin</h1>
+
+  <div class="ampel">
+    <div id="red" class="light red"></div>
+    <div id="yellow" class="light yellow"></div>
+    <div id="green" class="light green"></div>
+  </div>
+
+  <button class="btn-green" onclick="setStatus('green')">Grün</button>
+  <button class="btn-yellow" onclick="setStatus('yellow')">Gelb</button>
+  <button class="btn-red" onclick="setStatus('red')">Rot</button>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const supabase = createClient(
+  'https://ljjpefhiqpyjvgohoorj.supabase.co',
+  'sb_publishable_c5aJAVl3RS4B2yFqyctT0A_W7ni7FgC'
+)
+
+function showLight(status) {
+  document.getElementById('red').classList.remove('active')
+  document.getElementById('yellow').classList.remove('active')
+  document.getElementById('green').classList.remove('active')
+
+  if (status === 'green') document.getElementById('green').classList.add('active')
+  if (status === 'yellow') document.getElementById('yellow').classList.add('active')
+  if (status === 'red') document.getElementById('red').classList.add('active')
+}
+
+async function loadStatus() {
+  const { data } = await supabase
+    .from('traffic_status')
+    .select('*')
+    .eq('id', 1)
+    .single()
+
+  const updated = new Date(data.updated_at).getTime()
+  const expired = Date.now() - updated > 20 * 60 * 1000
+
+  const status = expired ? 'neutral' : data.status
+  showLight(status)
+}
+
+async function setStatus(status) {
+  await supabase
+    .from('traffic_status')
+    .update({
+      status: status,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', 1)
+
+  loadStatus()
+}
+
+window.setStatus = setStatus
+
+loadStatus()
+setInterval(loadStatus, 5000)
+</script>
+
+</body>
+</html>

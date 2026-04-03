@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blutspende-Ampel</title>
+  <title>Blutspendemobil</title>
 
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #e5e7eb;
+      background: #f3f4f6;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -51,28 +51,9 @@
       box-shadow: 0 0 25px currentColor;
     }
 
-    button {
-      margin: 6px;
-      padding: 12px 16px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .btn-green { background: limegreen; }
-    .btn-yellow { background: gold; }
-    .btn-red { background: red; color: white; }
-
     #statusText {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    #info {
-      color: #444;
-      margin-top: 10px;
     }
   </style>
 </head>
@@ -88,13 +69,6 @@
     </div>
 
     <div id="statusText">Lade...</div>
-    <div id="info">Status wird geladen</div>
-
-    <hr style="margin: 25px 0;">
-
-    <button class="btn-green" onclick="setStatus('green')">Grün</button>
-    <button class="btn-yellow" onclick="setStatus('yellow')">Gelb</button>
-    <button class="btn-red" onclick="setStatus('red')">Rot</button>
   </div>
 
   <script type="module">
@@ -110,39 +84,28 @@
       document.getElementById('yellow').classList.remove('active')
       document.getElementById('green').classList.remove('active')
 
-      const statusText = document.getElementById('statusText')
-      const info = document.getElementById('info')
+      const text = document.getElementById('statusText')
 
       if (status === 'green') {
         document.getElementById('green').classList.add('active')
-        statusText.innerText = 'Grün'
-        info.innerText = 'Spende aktuell sinnvoll'
+        text.innerText = 'Grün – Spende sinnvoll'
       } else if (status === 'yellow') {
         document.getElementById('yellow').classList.add('active')
-        statusText.innerText = 'Gelb'
-        info.innerText = 'Es kann zu Wartezeit kommen'
+        text.innerText = 'Gelb – Wartezeit möglich'
       } else if (status === 'red') {
         document.getElementById('red').classList.add('active')
-        statusText.innerText = 'Rot'
-        info.innerText = 'Aktuell eher nicht sinnvoll'
+        text.innerText = 'Rot – aktuell nicht sinnvoll'
       } else {
-        statusText.innerText = 'Neutral'
-        info.innerText = 'Keine aktuelle Meldung'
+        text.innerText = 'Neutral'
       }
     }
 
     async function loadStatus() {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('traffic_status')
         .select('*')
         .eq('id', 1)
         .single()
-
-      if (error) {
-        document.getElementById('statusText').innerText = 'Fehler'
-        document.getElementById('info').innerText = error.message
-        return
-      }
 
       const updated = new Date(data.updated_at).getTime()
       const expired = Date.now() - updated > 20 * 60 * 1000
@@ -150,25 +113,6 @@
       const status = expired ? 'neutral' : data.status
       showLight(status)
     }
-
-    async function setStatus(status) {
-      const { error } = await supabase
-        .from('traffic_status')
-        .update({
-          status: status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', 1)
-
-      if (error) {
-        alert('Fehler: ' + error.message)
-        return
-      }
-
-      loadStatus()
-    }
-
-    window.setStatus = setStatus
 
     loadStatus()
     setInterval(loadStatus, 5000)
